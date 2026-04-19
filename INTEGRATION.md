@@ -791,3 +791,5 @@ Error detection & logging with metadata, rollback & data consistency, error queu
 ## Support & Contact
 
 For integration questions or technical support, refer to the main README.md or contact the development team.
+Contact Aarav Adarsh for the integration. 
+Thank you!
