@@ -2,9 +2,13 @@ package com.jackfruit.orderfulfillment;
 
 import com.jackfruit.orderfulfillment.model.OrderItemRequest;
 import com.jackfruit.orderfulfillment.model.OrderRequest;
+import com.jackfruit.orderfulfillment.service.OrderFulfillmentExceptionLogger;
 import com.jackfruit.orderfulfillment.service.OrderFulfillmentService;
 import com.jackfruit.scm.database.adapter.OrderFulfillmentAdapter;
 import com.jackfruit.scm.database.facade.SupplyChainDatabaseFacade;
+import com.jackfruit.scm.database.model.SubsystemException;
+import com.scm.core.SCMException;
+import com.scm.core.Severity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +22,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class OrderFulfillmentServiceTest {
 
@@ -39,6 +46,64 @@ public class OrderFulfillmentServiceTest {
             var fulfillmentOrder = service.processNewOrder(request);
             service.createPackingAndDispatch(request.orderId(), fulfillmentOrder.fulfillmentId());
         });
+    }
+
+    @Test
+    public void testProcessNewOrderThrowsWhenOrderIsInvalid() {
+        OrderRequest invalidRequest = new OrderRequest(
+                "ORD-INVALID-001",
+                "CUST-TEST-001",
+                "Test Customer",
+                "123 Test Street, Test City, TC 12345",
+                "+1-123-456-7890",
+                "ECOMMERCE",
+                "TEST-PAYMENT-123",
+                "AUTHORIZED",
+                List.of(),
+                LocalDateTime.now()
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> service.processNewOrder(invalidRequest));
+    }
+
+    @Test
+    public void testCreatePackingAndDispatchThrowsWhenOrderMissing() {
+        assertThrows(IllegalStateException.class, () -> service.createPackingAndDispatch("ORD-NOT-FOUND", "FULFILL-UNKNOWN"));
+    }
+
+    @Test
+    public void testBuildScmExceptionAndConversionToSubsystemException() {
+        SCMException scmException = OrderFulfillmentExceptionLogger.buildScmException(
+                99,
+                "TEST_EXCEPTION",
+                "Test exception message",
+                Severity.MINOR
+        );
+
+        SubsystemException subsystemException = OrderFulfillmentExceptionLogger.convertToSubsystemException(scmException);
+
+        assertEquals(99, subsystemException.getExceptionId());
+        assertEquals("TEST_EXCEPTION", subsystemException.getExceptionName());
+        assertEquals("ORDER_FULFILLMENT", subsystemException.getSubsystem());
+        assertEquals("Test exception message", subsystemException.getErrorMessage());
+        assertEquals("MINOR", subsystemException.getSeverity());
+        assertNotNull(subsystemException.getLoggedAt());
+    }
+
+    @Test
+    public void testScmExceptionFactoryCreatesValidException() {
+        SCMException scmException = OrderFulfillmentExceptionLogger.buildScmException(
+                42,
+                "FACTORY_TEST",
+                "Factory unit test",
+                Severity.MAJOR
+        );
+
+        assertEquals(42, scmException.getExceptionId());
+        assertEquals("FACTORY_TEST", scmException.getExceptionName());
+        assertEquals("ORDER_FULFILLMENT", scmException.getSubsystem());
+        assertEquals("Factory unit test", scmException.getErrorMessage());
+        assertEquals(Severity.MAJOR, scmException.getSeverity());
     }
 
     @Test

@@ -7,8 +7,8 @@ import com.jackfruit.scm.database.facade.SupplyChainDatabaseFacade;
 import com.jackfruit.scm.database.model.Order;
 import com.jackfruit.scm.database.model.OrderItem;
 import com.jackfruit.scm.database.model.OrderFulfillmentModels;
-import com.jackfruit.scm.database.model.SubsystemException;
 import com.jackfruit.scm.database.model.WarehouseModels.StockRecord;
+import com.scm.core.Severity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -57,14 +57,8 @@ public class OrderFulfillmentService {
 
             return fulfillOrderForRequest(request);
         } catch (Exception e) {
-            SubsystemException exception = new SubsystemException();
-            exception.setExceptionId(2);
-            exception.setSubsystem("ORDER_FULFILLMENT");
-            exception.setExceptionName("ORDER_PROCESSING_FAILED");
-            exception.setErrorMessage("Failed to process new order: " + request.orderId() + " - " + e.getMessage());
-            exception.setSeverity("HIGH");
-            exception.setLoggedAt(LocalDateTime.now());
-            facade.exceptions().logException(exception);
+            String errorMessage = "Failed to process new order: " + request.orderId() + " - " + e.getMessage();
+            OrderFulfillmentExceptionLogger.logException(facade, 2, "ORDER_PROCESSING_FAILED", errorMessage, Severity.MAJOR);
             throw e;
         }
     }
@@ -105,14 +99,8 @@ public class OrderFulfillmentService {
                     "STAGED"
             ));
         } catch (Exception e) {
-            SubsystemException exception = new SubsystemException();
-            exception.setExceptionId(1);
-            exception.setSubsystem("ORDER_FULFILLMENT");
-            exception.setExceptionName("PACKING_DISPATCH_FAILED");
-            exception.setErrorMessage("Failed to create packing and dispatch for order: " + orderId + " - " + e.getMessage());
-            exception.setSeverity("MEDIUM");
-            exception.setLoggedAt(LocalDateTime.now());
-            facade.exceptions().logException(exception);
+            String errorMessage = "Failed to create packing and dispatch for order: " + orderId + " - " + e.getMessage();
+            OrderFulfillmentExceptionLogger.logException(facade, 1, "PACKING_DISPATCH_FAILED", errorMessage, Severity.MINOR);
             throw e;
         }
     }
@@ -138,14 +126,8 @@ public class OrderFulfillmentService {
                 createPackingAndDispatch(order.getOrderId(), fulfillmentOrder.fulfillmentId());
             }
         } catch (Exception e) {
-            SubsystemException exception = new SubsystemException();
-            exception.setExceptionId(3);
-            exception.setSubsystem("ORDER_FULFILLMENT");
-            exception.setExceptionName("BATCH_PROCESSING_FAILED");
-            exception.setErrorMessage("Failed to process pending orders from database - " + e.getMessage());
-            exception.setSeverity("HIGH");
-            exception.setLoggedAt(LocalDateTime.now());
-            facade.exceptions().logException(exception);
+            String errorMessage = "Failed to process pending orders from database - " + e.getMessage();
+            OrderFulfillmentExceptionLogger.logException(facade, 3, "BATCH_PROCESSING_FAILED", errorMessage, Severity.MAJOR);
             throw e;
         }
     }

@@ -18,9 +18,10 @@ The module persists orders through `OrdersSubsystemFacade` and creates fulfillme
 
 ## Integration with the exception handling subsystem
 
-The subsystem integrates with the exception handler subsystem for automatic error logging and notifications.
-When exceptions occur during order processing, packing, or batch operations, they are automatically logged using `ExceptionHandlingSubsystemFacade.logException()`.
-This provides centralized exception management across the supply chain system.
+The subsystem now integrates directly with the shared SCM exception subsystem by building `SCMException` payloads and dispatching them through `SCMExceptionHandler.INSTANCE.handle(...)`.
+Exceptions are also persisted to the database via `ExceptionHandlingSubsystemFacade.logException()` using converted `SubsystemException` records.
+The current implementation uses `SCMExceptionFactory.create(...)` with severity levels from `com.scm.core.Severity`.
+Supported severity values are: `MAJOR`, `MINOR`, and `WARNING`.
 
 ## Setup
 
