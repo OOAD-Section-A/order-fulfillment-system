@@ -1,60 +1,63 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.scm</groupId>
-    <artifactId>order-fulfillment-system</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <groupId>com.jackfruit.orderfulfillment</groupId>
+    <artifactId>order-fulfillment-subsystem</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>Order Fulfillment Subsystem</name>
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
     <dependencies>
-
-        <!-- 🔥 DATABASE MODULE -->
         <dependency>
             <groupId>com.jackfruit.scm</groupId>
             <artifactId>database-module</artifactId>
             <version>1.0.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/database-module-1.0.0-SNAPSHOT-standalone.jar</systemPath>
         </dependency>
-
-        <!-- 🔥 MYSQL DRIVER -->
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.33</version>
+            <groupId>com.scm</groupId>
+            <artifactId>scm-exception-handler</artifactId>
+            <version>3.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/scm-exception-handler-v3.jar</systemPath>
         </dependency>
-
-        <!-- 🔥 EXCEPTION HANDLER -->
         <dependency>
-            <groupId>com.scm.exceptions</groupId>
-            <artifactId>handler-exception</artifactId>
-            <version>1.0</version>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
         </dependency>
-
-        <!-- 🔥 EXCEPTION FOUNDATION -->
-        <dependency>
-            <groupId>com.scm.exceptions</groupId>
-            <artifactId>scm-exception-foundation</artifactId>
-            <version>1.0</version>
-        </dependency>
-
     </dependencies>
 
     <build>
         <plugins>
-
-            <!-- 🔥 RUN MAIN CLASS -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>17</release>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>com.scm.orderfulfillment.main.Main</mainClass>
+                    <mainClass>com.jackfruit.orderfulfillment.OrderFulfillmentApplication</mainClass>
                 </configuration>
             </plugin>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+            </plugin>
         </plugins>
     </build>
-
 </project>

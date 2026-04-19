@@ -1,0 +1,254 @@
+package com.jackfruit.orderfulfillment.service;
+
+import com.jackfruit.orderfulfillment.model.OrderItemRequest;
+import com.jackfruit.orderfulfillment.model.OrderRequest;
+import com.jackfruit.scm.database.adapter.OrderFulfillmentAdapter;
+import com.jackfruit.scm.database.facade.SupplyChainDatabaseFacade;
+import com.jackfruit.scm.database.model.Order;
+import com.jackfruit.scm.database.model.OrderItem;
+import com.jackfruit.scm.database.model.OrderFulfillmentModels;
+import com.jackfruit.scm.database.model.SubsystemException;
+import com.jackfruit.scm.database.model.WarehouseModels.StockRecord;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+public class OrderFulfillmentService {
+    private final SupplyChainDatabaseFacade facade;
+    private final OrderFulfillmentAdapter fulfillmentAdapter;
+
+    public OrderFulfillmentService(SupplyChainDatabaseFacade facade, OrderFulfillmentAdapter fulfillmentAdapter) {
+        this.facade = facade;
+        this.fulfillmentAdapter = fulfillmentAdapter;
+    }
+
+    public OrderFulfillmentModels.FulfillmentOrder processNewOrder(OrderRequest request) {
+        try {
+            new OrderValidationService().validate(request);
+
+            Order order = new Order(
+                    request.orderId(),
+                    request.customerId(),
+                    "RECEIVED",
+                    request.orderDate(),
+                    calculateTotal(request.items()),
+                    request.paymentStatus(),
+                    request.salesChannel()
+            );
+            facade.orders().createOrder(order);
+
+            for (OrderItemRequest itemRequest : request.items()) {
+                OrderItem orderItem = new OrderItem(
+                        itemRequest.orderItemId(),
+                        request.orderId(),
+                        itemRequest.productId(),
+                        itemRequest.quantity(),
+                        itemRequest.unitPrice(),
+                        itemRequest.unitPrice().multiply(BigDecimal.valueOf(itemRequest.quantity()))
+                );
+                facade.orders().addOrderItem(orderItem);
+            }
+
+            return fulfillOrderForRequest(request);
+        } catch (Exception e) {
+            SubsystemException exception = new SubsystemException();
+            exception.setExceptionId(2);
+            exception.setSubsystem("ORDER_FULFILLMENT");
+            exception.setExceptionName("ORDER_PROCESSING_FAILED");
+            exception.setErrorMessage("Failed to process new order: " + request.orderId() + " - " + e.getMessage());
+            exception.setSeverity("HIGH");
+            exception.setLoggedAt(LocalDateTime.now());
+            facade.exceptions().logException(exception);
+            throw e;
+        }
+    }
+
+    private OrderFulfillmentModels.FulfillmentOrder fulfillOrderForRequest(OrderRequest request) {
+        new OrderValidationService().validate(request);
+
+        String selectedWarehouse = selectBestWarehouse(request);
+        OrderFulfillmentModels.FulfillmentOrder fulfillmentOrder = createFulfillmentOrder(request, selectedWarehouse);
+        fulfillmentAdapter.createFulfillmentOrder(fulfillmentOrder);
+
+        createPickTask(request, selectedWarehouse);
+        return fulfillmentOrder;
+    }
+
+    public void createPackingAndDispatch(String orderId, String fulfillmentId) {
+        try {
+            Optional<Order> existing = facade.orders().getOrder(orderId);
+            if (existing.isEmpty()) {
+                throw new IllegalStateException("Order not found for packing: " + orderId);
+            }
+
+            OrderFulfillmentModels.PackingDetail packingDetail = new OrderFulfillmentModels.PackingDetail(
+                    "PACK-" + UUID.randomUUID(),
+                    fulfillmentId,
+                    "STANDARD_BOX",
+                    "warehouse-robot-01",
+                    LocalDateTime.now(),
+                    BigDecimal.valueOf(5.4)
+            );
+            fulfillmentAdapter.createPackingDetail(packingDetail);
+
+            facade.warehouse().createStagingDispatch(new com.jackfruit.scm.database.model.WarehouseModels.StagingDispatch(
+                    UUID.randomUUID().toString(),
+                    "DOCK-01",
+                    orderId,
+                    LocalDateTime.now(),
+                    "STAGED"
+            ));
+        } catch (Exception e) {
+            SubsystemException exception = new SubsystemException();
+            exception.setExceptionId(1);
+            exception.setSubsystem("ORDER_FULFILLMENT");
+            exception.setExceptionName("PACKING_DISPATCH_FAILED");
+            exception.setErrorMessage("Failed to create packing and dispatch for order: " + orderId + " - " + e.getMessage());
+            exception.setSeverity("MEDIUM");
+            exception.setLoggedAt(LocalDateTime.now());
+            facade.exceptions().logException(exception);
+            throw e;
+        }
+    }
+
+    public void processPendingOrdersFromDatabase() {
+        try {
+            Set<String> existingFulfillmentOrderIds = fulfillmentAdapter.listFulfillmentOrders().stream()
+                    .map(OrderFulfillmentModels.FulfillmentOrder::orderId)
+                    .collect(Collectors.toSet());
+
+            List<Order> orders = facade.orders().listOrders();
+            for (Order order : orders) {
+                if (!isPending(order) || existingFulfillmentOrderIds.contains(order.getOrderId())) {
+                    continue;
+                }
+
+                List<OrderItem> orderItems = facade.orders().listOrderItems(order.getOrderId());
+                if (orderItems.isEmpty()) {
+                    continue;
+                }
+                OrderRequest request = buildOrderRequestFromDb(order, orderItems);
+                OrderFulfillmentModels.FulfillmentOrder fulfillmentOrder = fulfillOrderForRequest(request);
+                createPackingAndDispatch(order.getOrderId(), fulfillmentOrder.fulfillmentId());
+            }
+        } catch (Exception e) {
+            SubsystemException exception = new SubsystemException();
+            exception.setExceptionId(3);
+            exception.setSubsystem("ORDER_FULFILLMENT");
+            exception.setExceptionName("BATCH_PROCESSING_FAILED");
+            exception.setErrorMessage("Failed to process pending orders from database - " + e.getMessage());
+            exception.setSeverity("HIGH");
+            exception.setLoggedAt(LocalDateTime.now());
+            facade.exceptions().logException(exception);
+            throw e;
+        }
+    }
+
+    public List<OrderFulfillmentModels.FulfillmentOrder> listFulfillmentOrders() {
+        return fulfillmentAdapter.listFulfillmentOrders();
+    }
+
+    private String selectBestWarehouse(OrderRequest request) {
+        List<StockRecord> stockRecords = facade.warehouse().listStockRecords();
+        return request.items().stream()
+                .map(OrderItemRequest::productId)
+                .filter(pid -> stockRecords.stream().anyMatch(r -> r.productId().equals(pid) && r.quantity() >= 1))
+                .findFirst()
+                .map(record -> stockRecords.stream()
+                        .filter(r -> r.productId().equals(record) && r.quantity() > 0)
+                        .findFirst()
+                        .map(StockRecord::binId)
+                        .orElse("DEFAULT-WH"))
+                .orElse("BACKORDER-WH");
+    }
+
+    private OrderFulfillmentModels.FulfillmentOrder createFulfillmentOrder(OrderRequest request, String assignedWarehouse) {
+        return new OrderFulfillmentModels.FulfillmentOrder(
+                "FULFILL-" + UUID.randomUUID(),
+                request.orderId(),
+                request.customerId(),
+                request.items().get(0).productId(),
+                request.items().get(0).quantity(),
+                "CONFIRMED",
+                request.orderDate(),
+                calculateTotal(request.items()),
+                request.customerName(),
+                request.shippingAddress(),
+                request.contactNumber(),
+                "PAY-" + UUID.randomUUID(),
+                request.paymentStatus(),
+                request.paymentMethod(),
+                0,
+                0,
+                assignedWarehouse,
+                "RACK-A1",
+                "PENDING",
+                "PENDING",
+                null,
+                "NOT_SHIPPED",
+                "NOT_ASSIGNED",
+                null,
+                LocalDate.now().plusDays(3),
+                "IN_PROGRESS",
+                "WAREHOUSE_TEAM",
+                LocalDateTime.now(),
+                "Leave at front door",
+                0,
+                "OPEN",
+                "NONE",
+                null,
+                assignedWarehouse,
+                "HIGH",
+                LocalDateTime.now()
+        );
+    }
+
+    private OrderRequest buildOrderRequestFromDb(Order order, List<OrderItem> orderItems) {
+        return new OrderRequest(
+                order.getOrderId(),
+                order.getCustomerId(),
+                "Customer-" + order.getCustomerId(),
+                "UNKNOWN",
+                "UNKNOWN",
+                order.getSalesChannel(),
+                "UNKNOWN",
+                order.getPaymentStatus(),
+                orderItems.stream()
+                        .map(item -> new OrderItemRequest(
+                                item.getOrderItemId(),
+                                item.getProductId(),
+                                item.getOrderedQuantity(),
+                                item.getUnitPrice()
+                        ))
+                        .collect(Collectors.toList()),
+                order.getOrderDate()
+        );
+    }
+
+    private boolean isPending(Order order) {
+        return "RECEIVED".equalsIgnoreCase(order.getOrderStatus()) || "NEW".equalsIgnoreCase(order.getOrderStatus());
+    }
+
+    private void createPickTask(OrderRequest request, String assignedWarehouse) {
+        facade.warehouse().createPickTask(new com.jackfruit.scm.database.model.WarehouseModels.PickTask(
+                "PICK-" + UUID.randomUUID(),
+                request.orderId(),
+                "WAREHOUSE_PICKER_01",
+                request.items().get(0).productId(),
+                request.items().get(0).quantity(),
+                "PENDING"
+        ));
+    }
+
+    private BigDecimal calculateTotal(List<OrderItemRequest> items) {
+        return items.stream()
+                .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+}
