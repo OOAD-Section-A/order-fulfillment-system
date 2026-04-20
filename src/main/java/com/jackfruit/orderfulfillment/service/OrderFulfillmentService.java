@@ -6,6 +6,14 @@ import com.jackfruit.scm.database.adapter.OrderFulfillmentAdapter;
 import com.jackfruit.scm.database.facade.SupplyChainDatabaseFacade;
 import com.jackfruit.scm.database.model.Order;
 import com.jackfruit.scm.database.model.OrderItem;
+import com.jackfruit.orderfulfillment.client.CommissionWebhookClient;
+import com.jackfruit.orderfulfillment.model.CommissionEvent;
+import com.jackfruit.orderfulfillment.model.OrderItemRequest;
+import com.jackfruit.orderfulfillment.model.OrderRequest;
+import com.jackfruit.scm.database.adapter.OrderFulfillmentAdapter;
+import com.jackfruit.scm.database.facade.SupplyChainDatabaseFacade;
+import com.jackfruit.scm.database.model.Order;
+import com.jackfruit.scm.database.model.OrderItem;
 import com.jackfruit.scm.database.model.OrderFulfillmentModels;
 import com.jackfruit.scm.database.model.WarehouseModels.StockRecord;
 import com.scm.core.Severity;
@@ -22,10 +30,13 @@ import java.util.stream.Collectors;
 public class OrderFulfillmentService {
     private final SupplyChainDatabaseFacade facade;
     private final OrderFulfillmentAdapter fulfillmentAdapter;
+    private final CommissionWebhookClient commissionWebhookClient;
 
     public OrderFulfillmentService(SupplyChainDatabaseFacade facade, OrderFulfillmentAdapter fulfillmentAdapter) {
         this.facade = facade;
         this.fulfillmentAdapter = fulfillmentAdapter;
+        // TODO: Load webhook URL from configuration
+        this.commissionWebhookClient = new CommissionWebhookClient("https://commission-system.example.com/api/v1/commission-events");
     }
 
     public OrderFulfillmentModels.FulfillmentOrder processNewOrder(OrderRequest request) {
@@ -124,6 +135,8 @@ public class OrderFulfillmentService {
                 OrderRequest request = buildOrderRequestFromDb(order, orderItems);
                 OrderFulfillmentModels.FulfillmentOrder fulfillmentOrder = fulfillOrderForRequest(request);
                 createPackingAndDispatch(order.getOrderId(), fulfillmentOrder.fulfillmentId());
+                // Trigger commission webhook for delivered orders
+                triggerCommissionWebhook(fulfillmentOrder, request);
             }
         } catch (Exception e) {
             String errorMessage = "Failed to process pending orders from database - " + e.getMessage();
@@ -209,7 +222,9 @@ public class OrderFulfillmentService {
                                 item.getUnitPrice()
                         ))
                         .collect(Collectors.toList()),
-                order.getOrderDate()
+                order.getOrderDate(),
+                "UNKNOWN", // agentId
+                "Unknown Agent" // agentName
         );
     }
 
@@ -232,5 +247,33 @@ public class OrderFulfillmentService {
         return items.stream()
                 .map(item -> item.unitPrice().multiply(BigDecimal.valueOf(item.quantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private void triggerCommissionWebhook(OrderFulfillmentModels.FulfillmentOrder fulfillmentOrder, OrderRequest request) {
+        try {
+            CommissionEvent event = new CommissionEvent(
+                    fulfillmentOrder.fulfillmentId(),
+                    fulfillmentOrder.orderId(),
+                    request.agentId() != null ? request.agentId() : "UNKNOWN_AGENT",
+                    request.agentName() != null ? request.agentName() : "Unknown Agent",
+                    fulfillmentOrder.customerId(),
+                    fulfillmentOrder.totalAmount(),
+                    "USD", // Default currency
+                    fulfillmentOrder.orderDate(),
+                    LocalDateTime.now(), // deliveryDate - using current time as approximation
+                    "INV-" + fulfillmentOrder.fulfillmentId(),
+                    request.salesChannel(),
+                    fulfillmentOrder.paymentStatus(),
+                    "ORDER_DELIVERED",
+                    LocalDateTime.now()
+            );
+            commissionWebhookClient.sendCommissionEvent(event, facade);
+        } catch (Exception e) {
+            // Log webhook failure but don't fail the main process
+            OrderFulfillmentExceptionLogger.logException(
+                    facade, 6, "COMMISSION_WEBHOOK_TRIGGER_FAILED",
+                    "Failed to trigger commission webhook: " + e.getMessage(), Severity.MINOR
+            );
+        }
     }
 }
