@@ -13,6 +13,8 @@ public record OrderRequest(
         String paymentMethod,
         String paymentStatus,
         List<OrderItemRequest> items,
-        LocalDateTime orderDate
+        LocalDateTime orderDate,
+        String agentId,
+        String agentName
 ) {
 }
