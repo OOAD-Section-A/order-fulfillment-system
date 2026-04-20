@@ -34,7 +34,9 @@ public class OrderValidationServiceTest {
                 "PAYMENT",
                 "AUTHORIZED",
                 List.of(new OrderItemRequest("ITEM-001", "PRD-001", 1, BigDecimal.ONE)),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "AGENT-001",
+                "Test Agent"
         );
         assertThrows(IllegalArgumentException.class, () -> validationService.validate(invalidRequest));
     }
@@ -51,7 +53,9 @@ public class OrderValidationServiceTest {
                 "PAYMENT",
                 "AUTHORIZED",
                 List.of(new OrderItemRequest("ITEM-001", "PRD-001", 1, BigDecimal.ONE)),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "AGENT-001",
+                "Test Agent"
         );
         assertThrows(IllegalArgumentException.class, () -> validationService.validate(invalidRequest));
     }
@@ -68,7 +72,9 @@ public class OrderValidationServiceTest {
                 "PAYMENT",
                 "AUTHORIZED",
                 List.of(new OrderItemRequest("ITEM-001", "PRD-001", 1, BigDecimal.ONE)),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "AGENT-001",
+                "Test Agent"
         );
         assertThrows(IllegalArgumentException.class, () -> validationService.validate(invalidRequest));
     }
@@ -85,7 +91,9 @@ public class OrderValidationServiceTest {
                 "PAYMENT",
                 "AUTHORIZED",
                 List.of(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "AGENT-001",
+                "Test Agent"
         );
         assertThrows(IllegalArgumentException.class, () -> validationService.validate(invalidRequest));
     }
@@ -104,7 +112,9 @@ public class OrderValidationServiceTest {
                         new OrderItemRequest("ITEM-TEST-001", "PRD-TEST-001", 2, new BigDecimal("10.00")),
                         new OrderItemRequest("ITEM-TEST-002", "PRD-TEST-002", 1, new BigDecimal("5.50"))
                 ),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "AGENT-TEST-001",
+                "Test Sales Agent"
         );
     }
 }
