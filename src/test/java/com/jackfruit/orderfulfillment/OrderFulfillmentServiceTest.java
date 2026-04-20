@@ -60,7 +60,9 @@ public class OrderFulfillmentServiceTest {
                 "TEST-PAYMENT-123",
                 "AUTHORIZED",
                 List.of(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "AGENT-001",
+                "Test Agent"
         );
 
         assertThrows(IllegalArgumentException.class, () -> service.processNewOrder(invalidRequest));
@@ -141,7 +143,9 @@ public class OrderFulfillmentServiceTest {
                         new OrderItemRequest("ITEM-TEST-" + ts + "-1", "PRD-TEST-001", 2, new BigDecimal("10.00")),
                         new OrderItemRequest("ITEM-TEST-" + ts + "-2", "PRD-TEST-002", 1, new BigDecimal("5.50"))
                 ),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "AGENT-TEST-001",
+                "Test Sales Agent"
         );
     }
 
