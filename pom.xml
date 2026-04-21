@@ -1,11 +1,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://www.w3.org/maven-v4_0_0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>com.jackfruit.orderfulfillment</groupId>
     <artifactId>order-fulfillment-subsystem</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>Order Fulfillment Subsystem</name>
+
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
@@ -13,6 +16,8 @@
     </properties>
 
     <dependencies>
+
+        <!-- Database Module -->
         <dependency>
             <groupId>com.jackfruit.scm</groupId>
             <artifactId>database-module</artifactId>
@@ -20,6 +25,8 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/database-module-1.0.0-SNAPSHOT-standalone.jar</systemPath>
         </dependency>
+
+        <!-- Exception Handler -->
         <dependency>
             <groupId>com.scm</groupId>
             <artifactId>scm-exception-handler</artifactId>
@@ -27,6 +34,8 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/scm-exception-handler-v3.jar</systemPath>
         </dependency>
+
+        <!-- Exception Viewer -->
         <dependency>
             <groupId>com.scm</groupId>
             <artifactId>scm-exception-viewer-gui</artifactId>
@@ -34,6 +43,8 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/scm-exception-viewer-gui.jar</systemPath>
         </dependency>
+
+        <!-- JNA -->
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
@@ -41,6 +52,7 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/jna-5.18.1.jar</systemPath>
         </dependency>
+
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna-platform</artifactId>
@@ -48,26 +60,34 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/jna-platform-5.18.1.jar</systemPath>
         </dependency>
+
+        <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.15.2</version>
         </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.15.2</version>
         </dependency>
+
+        <!-- JUnit -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
+
+            <!-- Compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -76,6 +96,8 @@
                     <release>17</release>
                 </configuration>
             </plugin>
+
+            <!-- Run main class -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -84,11 +106,18 @@
                     <mainClass>com.jackfruit.orderfulfillment.OrderFulfillmentApplication</mainClass>
                 </configuration>
             </plugin>
+
+            <!-- ✅ FIXED: Surefire plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
+                <configuration>
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                </configuration>
             </plugin>
+
         </plugins>
     </build>
+
 </project>
