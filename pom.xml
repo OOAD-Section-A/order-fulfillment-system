@@ -28,6 +28,27 @@
             <systemPath>${project.basedir}/lib/scm-exception-handler-v3.jar</systemPath>
         </dependency>
         <dependency>
+            <groupId>com.scm</groupId>
+            <artifactId>scm-exception-viewer-gui</artifactId>
+            <version>3.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/scm-exception-viewer-gui.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.18.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/jna-5.18.1.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>5.18.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/jna-platform-5.18.1.jar</systemPath>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.15.2</version>

@@ -39,7 +39,18 @@ public final class OrderFulfillmentExceptionLogger {
                                     String errorMessage,
                                     Severity severity) {
         SCMException scmException = buildScmException(exceptionId, exceptionName, errorMessage, severity);
-        SCMExceptionHandler.INSTANCE.handle(scmException);
+
+        // Handle platform-specific exception logging
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("mac") || os.contains("darwin")) {
+            // On macOS, skip Windows Event Viewer logging and just log to console
+            System.err.println("SCM Exception [" + severity + "]: " + errorMessage);
+        } else {
+            // On Windows, use the Event Viewer
+            SCMExceptionHandler.INSTANCE.handle(scmException);
+        }
+
+        // Always log to database
         facade.exceptions().logException(convertToSubsystemException(scmException));
     }
 }
