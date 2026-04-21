@@ -152,7 +152,7 @@ public class OrderFulfillmentServiceTest {
     private void insertPendingOrderWithItems(String orderId, List<OrderItemRequest> items) {
         String dbUrl = System.getenv().getOrDefault("DB_URL", "jdbc:mysql://localhost:3306/OOAD");
         String dbUser = System.getenv().getOrDefault("DB_USERNAME", "root");
-        String dbPassword = System.getenv().getOrDefault("DB_PASSWORD", "root1234");
+        String dbPassword = System.getenv().getOrDefault("DB_PASSWORD", "abhiarasi2004");
 
         String insertOrder = "INSERT INTO orders (order_id, customer_id, order_status, order_date, total_amount, payment_status, sales_channel) VALUES (?, ?, ?, ?, ?, ?, ?)";
         String insertItem = "INSERT INTO order_items (order_item_id, order_id, product_id, ordered_quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?, ?)";
