@@ -35,6 +35,9 @@ public class OrderFulfillmentApplication {
 
     public static void main(String[] args) {
 
+        // Suppress DB team's GUI exception popups (e.g. DUPLICATE_PRIMARY_KEY)
+        System.setProperty("java.awt.headless", "true");
+
         System.out.println("========================================");
         System.out.println(" Order Fulfillment Subsystem — Starting ");
         System.out.println("========================================");
@@ -147,7 +150,9 @@ public class OrderFulfillmentApplication {
             System.out.println("========================================");
             System.out.println("Integrations Active:");
             System.out.println("  ✓ Database Team (SupplyChainDatabaseFacade)");
-            System.out.println("  ✓ Delivery Monitoring (DeliveryMonitoringFacadeDB)");
+            System.out.println(deliveryMonitoring.isConnected()
+                    ? "  ✓ Delivery Monitoring (DeliveryMonitoringFacadeDB) — LIVE"
+                    : "  ○ Delivery Monitoring — Standalone mode (needs JDK 24 runtime)");
 
         } catch (Exception e) {
             System.err.println("Order fulfillment subsystem failed: " + e.getMessage());
