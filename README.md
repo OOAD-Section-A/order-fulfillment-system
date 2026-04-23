@@ -1,233 +1,174 @@
-# Order Fulfillment Subsystem
+# Order Fulfillment Subsystem | Team VERTEX (#17)
+> **OOAD Lab Project | Supply Chain Management | Section A**
 
-A complete Java-based Order Fulfillment module for the Supply Chain Management (SCM) system. This subsystem handles order capture, validation, inventory allocation, routing, and fulfillment orchestration with comprehensive exception handling and database persistence.
+A production-ready Order Fulfillment Subsystem built with **Adapter Pattern + Dependency Injection** architecture, fully integrated with the SCM Database Module and Real-Time Delivery Monitoring system.
 
-## Core Features
+---
 
-- **Order Capture & Centralization**: Accepts orders from diverse channels and stores them in a unified format
-- **Inventory Promising (ATP/GTP)**: Real-time availability checks against warehouse stock before order confirmation
-- **Intelligent Order Routing & Allocation**: Dynamically selects the optimal fulfillment warehouse to minimize costs and transit time
-- **Order Validation & Fraud Detection**: Validates customer details and order structure before processing
-- **Picking & Packing Orchestration**: Generates picking tasks and packing details for warehouse execution
-- **Real-Time Tracking & Communication**: Integrates with staging and dispatch systems for logistics visibility
-- **Batch Order Processing**: Processes pending orders from the database for automated fulfillment workflows
-- **Exception Management & Logging**: Comprehensive error handling with centralized exception tracking
+## ✨ Key Features
 
-## Architecture
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | Order Capture & Centralization (WEB, MOBILE, EDI, POS) | ✅ |
+| 2 | Inventory Promising (ATP/GTP) | ✅ |
+| 3 | Intelligent Order Routing & Allocation | ✅ |
+| 4 | Order Validation & Fraud Detection | ✅ |
+| 5 | Picking & Packing Orchestration | ✅ |
+| 6 | Shipping & Carrier Management | ✅ |
+| 7 | Real-Time Tracking & Communication | ✅ |
+| 8 | Returns & Reverse Logistics | ✅ |
+| 9 | Exception & Backorder Management | ✅ |
 
-### Integration with the Database Subsystem
+## 🏗️ Architecture
 
-The Order Fulfillment subsystem integrates with the shared database layer through two primary facades:
+```
+┌─────────────────────────────────────────────────────┐
+│              OrderFulfillmentService                │
+│         (depends ONLY on interfaces)                │
+├──────────┬──────────┬──────────┬──────────┬─────────┤
+│Inventory │  Order   │ Delivery │Exception │ Return  │
+│ Service  │Repository│ Service  │ Service  │ Service │
+│(interface)│(interface)│(interface)│(interface)│(interface)│
+├──────────┼──────────┼──────────┼──────────┼─────────┤
+│Inventory │ Database │ Delivery │Exception │ Return  │
+│ Adapter  │ Adapter  │ Adapter  │ Adapter  │ Adapter │
+├──────────┴──────────┴──────────┴──────────┴─────────┤
+│         SupplyChainDatabaseFacade (DB Team)         │
+└─────────────────────────────────────────────────────┘
+                        +
+┌─────────────────────────────────────────────────────┐
+│        DeliveryMonitoringAdapter                    │
+│  implements IOrderFulfillmentService (their API)    │
+├─────────────────────────────────────────────────────┤
+│    DeliveryMonitoringFacadeDB (Ramen Noodles)       │
+└─────────────────────────────────────────────────────┘
+```
 
-- **SupplyChainDatabaseFacade**: Provides access to orders, warehouse stock, and exception logging
-- **OrderFulfillmentAdapter**: Handles creation and retrieval of fulfillment records, packing details, and staging/dispatch data
+### Design Patterns
+- **Adapter Pattern** — Bridges interfaces to DB team's facade
+- **Dependency Injection** — All services injected via constructors
+- **Interface Segregation** — 5 focused interfaces instead of 1 monolith
+- **Observer Pattern** — Event subscription with Delivery Monitoring
+- **Facade Pattern** — Single entry point via `OrderFulfillmentService`
 
-Key database interactions:
-- Reads/writes orders and order items via `OrdersSubsystemFacade`
-- Queries real-time warehouse stock via `WarehouseSubsystemFacade`
-- Creates fulfillment records, packing details, and staging dispatch records via `OrderFulfillmentAdapter`
-- Logs all exceptions to the centralized exception table via `ExceptionHandlingSubsystemFacade`
+## 📦 Project Structure
 
-### Exception Handling Architecture
+```
+src/main/java/com/jackfruit/orderfulfillment/
+├── adapter/                     # Adapter implementations
+│   ├── DatabaseAdapter.java     # OrderRepository → DB Facade
+│   ├── InventoryAdapter.java    # InventoryService → DB Facade
+│   ├── DeliveryAdapter.java     # DeliveryService → DB Facade
+│   ├── ExceptionAdapter.java    # ExceptionService → DB Facade
+│   ├── ReturnAdapter.java       # ReturnService → DB Facade
+│   └── DeliveryMonitoringAdapter.java  # Integration with Team #9
+├── integration/                 # Interface contracts
+│   ├── InventoryService.java
+│   ├── OrderRepository.java
+│   ├── DeliveryService.java
+│   ├── ExceptionService.java
+│   └── ReturnService.java
+├── model/                       # Domain models
+│   ├── OrderRequest.java
+│   ├── OrderItemRequest.java
+│   └── FulfillmentRecord.java
+├── service/                     # Business logic
+│   ├── OrderFulfillmentService.java
+│   ├── OrderFulfillmentExceptionLogger.java
+│   └── OrderValidationService.java
+├── client/
+│   └── CommissionWebhookClient.java  # Commission subsystem integration
+└── OrderFulfillmentApplication.java  # Entry point
 
-The Order Fulfillment subsystem uses a dual-layer exception handling model:
+src/test/java/com/jackfruit/orderfulfillment/
+├── OrderFulfillmentServiceTest.java  # 16 tests with in-memory stubs
+└── OrderValidationServiceTest.java   # 8 validation tests
 
-- **SCM Exception Layer**: Builds `SCMException` objects using `SCMExceptionFactory` and dispatches them through `SCMExceptionHandler.INSTANCE.handle()` for centralized processing
-- **Database Persistence Layer**: Converts `SCMException` to `SubsystemException` and persists to the database via `ExceptionHandlingSubsystemFacade.logException()`
+lib/
+├── database-module-1.0.0-SNAPSHOT-standalone.jar  # DB Team
+├── scm-exception-handler-v3.jar                   # Exception Handler
+├── delivery-monitoring-1.0.0.jar                  # Ramen Noodles (Team #9)
+└── ...
+```
 
-Supported severity levels: `MAJOR` (critical failures), `MINOR` (non-critical issues), `WARNING` (advisory events)
+## 🔗 Integrations
 
-Exception logging occurs automatically when:
-- Order validation fails (ORDER_PROCESSING_FAILED - severity MAJOR)
-- Packing or dispatch operations fail (PACKING_DISPATCH_FAILED - severity MINOR)
-- Batch processing encounters errors (BATCH_PROCESSING_FAILED - severity MAJOR)
+### 1. Database Team (SCM Database Module)
+- **JAR**: `lib/database-module-1.0.0-SNAPSHOT-standalone.jar`
+- **Usage**: All 5 adapters wrap `SupplyChainDatabaseFacade`
+- **Auto exception handling**: DB team's facade handles exceptions internally
 
-See `INTEGRATION.md` for details on integrating with other subsystems.
+### 2. Real-Time Delivery Monitoring (Team Ramen Noodles #9)
+- **JAR**: `lib/delivery-monitoring-1.0.0.jar`
+- **We implement**: `IOrderFulfillmentService` (their interface for pulling our data)
+- **We consume**: `DeliveryMonitoringFacadeDB` (their facade for pushing orders)
+- **Events**: Subscribe to `ORDER_DELIVERED`, `STATUS_CHANGED` via Observer pattern
 
-## Setup & Installation
+### 3. Commission Tracking (Webhook)
+- **Protocol**: HTTP POST to commission subsystem endpoint
+- **Resilience**: Non-blocking with connection/read timeouts
+- **Graceful fallback**: Logs to console if endpoint is unreachable
+
+## 🚀 Quick Start
 
 ### Prerequisites
+- Java Development Kit (JDK) 21+
+- Apache Maven 3.9+
+- MySQL Database (optional — tests work without it)
 
-- Java 17 or higher
-- Maven 3.8+
-- MySQL 5.7+ (or compatible database)
-- Local lib folder containing required JARs
-
-### Step 1: Prepare JAR Dependencies
-
-Place the following JARs in the `lib/` directory:
-
-```
-order-fulfillment-subsystem/lib/
-├── database-module-1.0.0-SNAPSHOT-standalone.jar
-├── scm-exception-handler-v3.jar
-└── scm-exception-viewer-gui.jar
-```
-
-### Step 2: Configure Database Connection
-
-Set environment variables:
-
+### Build & Test
 ```bash
-export DB_URL="jdbc:mysql://localhost:3306/OOAD"
-export DB_USERNAME="root"
-export DB_PASSWORD="your_password"
+mvn clean test
 ```
+**Expected output**: `Tests run: 24, Failures: 0, Errors: 0`
 
-Alternatively, edit `src/main/resources/database.properties`:
-
-```properties
-db.url=jdbc:mysql://localhost:3306/OOAD
-db.user=root
-db.password=your_password
-```
-
-### Step 3: Build & Test
-
-Compile the project:
-
+### Run the Application
 ```bash
 mvn clean compile
+java -cp "target/classes;lib/*" com.jackfruit.orderfulfillment.OrderFulfillmentApplication
 ```
 
-Run all tests:
+> **Note**: Requires MySQL with the OOAD database for full operation. The test suite runs entirely in-memory using stub adapters.
+
+## 🧪 Test Suite (24 Tests)
+
+All tests use **in-memory stub implementations** — no database required!
+
+| Test Class | Tests | What It Covers |
+|-----------|-------|----------------|
+| `OrderFulfillmentServiceTest` | 16 | Order processing, backorders, validation, batch processing, returns |
+| `OrderValidationServiceTest` | 8 | Address, payment, phone, fraud detection validation |
 
 ```bash
-mvn test
+mvn clean test
+# Tests run: 24, Failures: 0, Errors: 0, Skipped: 0
+# BUILD SUCCESS
 ```
 
-Run the application (processes pending orders):
+## 📋 For Partner Teams — Integration Guide
 
-```bash
-mvn compile exec:java
-```
+**See [`integration.md`](integration.md) for the full integration guide.**
 
-## Project Structure
+Quick overview:
+1. Download our source or clone this repo
+2. Our system exposes clean interfaces under `com.jackfruit.orderfulfillment.integration.*`
+3. Use `OrderFulfillmentService` with your own adapter implementations
+4. Subscribe to fulfillment events for real-time updates
 
-```
-order-fulfillment-subsystem/
-├── src/
-│   ├── main/
-│   │   ├── java/com/jackfruit/orderfulfillment/
-│   │   │   ├── OrderFulfillmentApplication.java      # Entry point
-│   │   │   ├── model/
-│   │   │   │   ├── OrderRequest.java                 # Order request record
-│   │   │   │   └── OrderItemRequest.java             # Order item details
-│   │   │   └── service/
-│   │   │       ├── OrderFulfillmentService.java      # Core fulfillment logic
-│   │   │       ├── OrderValidationService.java       # Order validation rules
-│   │   │       └── OrderFulfillmentExceptionLogger.java  # Exception handling helper
-│   │   └── resources/
-│   │       └── database.properties
-│   └── test/
-│       └── java/com/jackfruit/orderfulfillment/
-│           ├── OrderFulfillmentServiceTest.java      # Service tests & exception coverage
-│           └── OrderValidationServiceTest.java       # Validation tests
-├── lib/                                               # System-scope JAR dependencies
-├── pom.xml                                            # Maven configuration
-└── README.md                                          # This file
-```
+## 👥 Team Information
 
-## Core Services
+| Team Name | Team Number | Subsystem |
+|-----------|------------|-----------|
+| **VERTEX** | #17 | Order Fulfillment (#5) |
 
-### OrderFulfillmentService
+## 📄 License
 
-Main orchestrator for the fulfillment workflow:
+This project is part of the OOAD Section A Lab Project — Supply Chain Management.
 
-- `processNewOrder(OrderRequest)`: Validates, persists, and fulfills a new order
-- `fulfillOrderForRequest(OrderRequest)`: Creates fulfillment records and pick tasks
-- `createPackingAndDispatch(String, String)`: Generates packing details and staging dispatch
-- `processPendingOrdersFromDatabase()`: Batch processes orders from the database
-- `listFulfillmentOrders()`: Retrieves all active fulfillment records
-
-### OrderValidationService
-
-Ensures order integrity before processing:
-
-- `validate(OrderRequest)`: Checks for null/blank fields and required items
-- Throws `IllegalArgumentException` on validation failure
-
-### OrderFulfillmentExceptionLogger
-
-Centralizes exception creation and logging:
-
-- `buildScmException()`: Creates SCM exception objects
-- `convertToSubsystemException()`: Transforms SCM exceptions to database format
-- `logException()`: Orchestrates exception handling and persistence
-
-## Testing
-
-The subsystem includes 12 unit tests covering:
-
-- Valid order processing workflows
-- Invalid order rejection (null/blank fields, missing items)
-- Database batch processing
-- SCM exception creation and conversion
-- Exception persistence and severity mapping
-
-Run tests with:
-
-```bash
-mvn test
-```
-
-Test results are written to:
-```
-target/surefire-reports/
-```
-
-## Configuration Notes
-
-- The project uses Maven's `system` scope for local JAR dependencies to keep the build self-contained
-- Database schema is auto-initialized by the database module on first connection
-- Exception IDs (1, 2, 3) are predefined for order fulfillment operations
-- Timestamps are UTC-based using Java's LocalDateTime
-
-## Troubleshooting
-
-**Issue**: "Cannot find symbol: variable MEDIUM" during build
-
-**Solution**: Severity enum in `scm-exception-handler-v3.jar` only supports `MAJOR`, `MINOR`, and `WARNING`. Update code to use these values.
-
-**Issue**: "Data truncation: Data too long for column 'subsystem'"
-
-**Solution**: The subsystem name exceeds the database column size. Verify that the `subsystem` column in the exception table supports at least 50 characters.
-
-**Issue**: Order not found during packing
-
-**Solution**: Ensure the order was successfully persisted before calling `createPackingAndDispatch()`. Check database connection and exception logs.
-
-## Integration Roadmap
-
-The Order Fulfillment subsystem is designed to integrate with the following SCM modules:
-
-- **Inventory Management**: Stock level verification and reservation
-- **Warehouse Management**: Pick task creation and fulfillment coordination
-- **Real-Time Delivery Monitoring**: Shipment tracking and proof of delivery
-- **Transport & Logistics**: Carrier selection and route optimization
-- **Reporting & Analytics**: KPI tracking for fulfillment performance
-- **Exception Handling**: Centralized error logging and notifications
-
-See `INTEGRATION.md` for implementation details.
-
-## Dependencies
-
-- **MySQL Connector/J**: Database connectivity
-- **JUnit 5 (Jupiter)**: Unit testing framework
-- **SupplyChainDatabase**: Shared database module (bundled JAR)
-- **SCM Exception Handler**: Centralized exception management (bundled JAR)
-
-## Future Enhancements
-
-- Multi-warehouse fulfillment strategies (split shipments)
-- Advanced inventory allocation algorithms (min-cost routing)
-- Fulfillment analytics dashboard
-- Integration with shipping carriers (FedEx, UPS, DHL)
-- Customer self-service order tracking portal
-- Returns and reverse logistics support
-- AI-driven demand forecasting integration
-
-## License & Support
-
-This subsystem is part of the OOAD Supply Chain Management project.
-For support or questions, refer to the project documentation or contact the development team.
+---
+**Last Updated**: 2026-04-24  
+**Version**: 2.0.0  
+**Java**: 21+  
+**Build**: Maven  
+**Tests**: 24/24 passing ✅  
+**Status**: ✅ Production Ready, Integration Complete

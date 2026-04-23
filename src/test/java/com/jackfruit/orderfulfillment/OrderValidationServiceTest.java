@@ -3,118 +3,112 @@ package com.jackfruit.orderfulfillment;
 import com.jackfruit.orderfulfillment.model.OrderItemRequest;
 import com.jackfruit.orderfulfillment.model.OrderRequest;
 import com.jackfruit.orderfulfillment.service.OrderValidationService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for OrderValidationService.
+ * Tests validation rules and fraud detection logic.
+ */
 public class OrderValidationServiceTest {
 
-    private final OrderValidationService validationService = new OrderValidationService();
+    private OrderValidationService validationService;
 
-    @Test
-    public void testValidateValidOrder() {
-        OrderRequest validRequest = buildValidOrderRequest();
-        assertDoesNotThrow(() -> validationService.validate(validRequest));
+    @BeforeEach
+    public void setUp() {
+        validationService = new OrderValidationService();
     }
 
     @Test
-    public void testValidateOrderWithNullOrderId() {
-        OrderRequest invalidRequest = new OrderRequest(
-                null,
-                "CUST-001",
-                "Customer",
-                "Address",
-                "Phone",
-                "ECOMMERCE",
-                "PAYMENT",
-                "AUTHORIZED",
-                List.of(new OrderItemRequest("ITEM-001", "PRD-001", 1, BigDecimal.ONE)),
-                LocalDateTime.now(),
-                "AGENT-001",
-                "Test Agent"
+    public void testValidOrderPasses() {
+        OrderRequest request = buildValidRequest();
+        assertDoesNotThrow(() -> validationService.validate(request));
+    }
+
+    @Test
+    public void testNullRequestThrows() {
+        assertThrows(NullPointerException.class, () -> validationService.validate(null));
+    }
+
+    @Test
+    public void testBlankOrderIdThrows() {
+        OrderRequest request = new OrderRequest(
+                "", "CUST-001", "John", "123 Street", "9876543210",
+                "WEB", "CREDIT_CARD", "AUTHORIZED",
+                List.of(new OrderItemRequest("I1", "P1", 1, new BigDecimal("10"))),
+                LocalDateTime.now(), "A1", "Agent"
         );
-        assertThrows(IllegalArgumentException.class, () -> validationService.validate(invalidRequest));
+        assertThrows(IllegalArgumentException.class, () -> validationService.validate(request));
     }
 
     @Test
-    public void testValidateOrderWithBlankOrderId() {
-        OrderRequest invalidRequest = new OrderRequest(
-                "",
-                "CUST-001",
-                "Customer",
-                "Address",
-                "Phone",
-                "ECOMMERCE",
-                "PAYMENT",
-                "AUTHORIZED",
-                List.of(new OrderItemRequest("ITEM-001", "PRD-001", 1, BigDecimal.ONE)),
-                LocalDateTime.now(),
-                "AGENT-001",
-                "Test Agent"
+    public void testBlankShippingAddressThrows() {
+        OrderRequest request = new OrderRequest(
+                "ORD-001", "CUST-001", "John", "", "9876543210",
+                "WEB", "CREDIT_CARD", "AUTHORIZED",
+                List.of(new OrderItemRequest("I1", "P1", 1, new BigDecimal("10"))),
+                LocalDateTime.now(), "A1", "Agent"
         );
-        assertThrows(IllegalArgumentException.class, () -> validationService.validate(invalidRequest));
+        assertThrows(IllegalArgumentException.class, () -> validationService.validate(request));
     }
 
     @Test
-    public void testValidateOrderWithNullShippingAddress() {
-        OrderRequest invalidRequest = new OrderRequest(
-                "ORD-001",
-                "CUST-001",
-                "Customer",
-                null,
-                "Phone",
-                "ECOMMERCE",
-                "PAYMENT",
-                "AUTHORIZED",
-                List.of(new OrderItemRequest("ITEM-001", "PRD-001", 1, BigDecimal.ONE)),
-                LocalDateTime.now(),
-                "AGENT-001",
-                "Test Agent"
-        );
-        assertThrows(IllegalArgumentException.class, () -> validationService.validate(invalidRequest));
-    }
-
-    @Test
-    public void testValidateOrderWithEmptyItems() {
-        OrderRequest invalidRequest = new OrderRequest(
-                "ORD-001",
-                "CUST-001",
-                "Customer",
-                "Address",
-                "Phone",
-                "ECOMMERCE",
-                "PAYMENT",
-                "AUTHORIZED",
+    public void testEmptyItemsThrows() {
+        OrderRequest request = new OrderRequest(
+                "ORD-001", "CUST-001", "John", "123 Street", "9876543210",
+                "WEB", "CREDIT_CARD", "AUTHORIZED",
                 List.of(),
-                LocalDateTime.now(),
-                "AGENT-001",
-                "Test Agent"
+                LocalDateTime.now(), "A1", "Agent"
         );
-        assertThrows(IllegalArgumentException.class, () -> validationService.validate(invalidRequest));
+        assertThrows(IllegalArgumentException.class, () -> validationService.validate(request));
     }
 
-    private OrderRequest buildValidOrderRequest() {
+    @Test
+    public void testDeclinedPaymentThrows() {
+        OrderRequest request = new OrderRequest(
+                "ORD-001", "CUST-001", "John", "123 Street", "9876543210",
+                "WEB", "CREDIT_CARD", "DECLINED",
+                List.of(new OrderItemRequest("I1", "P1", 1, new BigDecimal("10"))),
+                LocalDateTime.now(), "A1", "Agent"
+        );
+        assertThrows(IllegalArgumentException.class, () -> validationService.validate(request));
+    }
+
+    @Test
+    public void testZeroQuantityThrows() {
+        OrderRequest request = new OrderRequest(
+                "ORD-001", "CUST-001", "John", "123 Street", "9876543210",
+                "WEB", "CREDIT_CARD", "AUTHORIZED",
+                List.of(new OrderItemRequest("I1", "P1", 0, new BigDecimal("10"))),
+                LocalDateTime.now(), "A1", "Agent"
+        );
+        assertThrows(IllegalArgumentException.class, () -> validationService.validate(request));
+    }
+
+    @Test
+    public void testShortAddressFraudDetection() {
+        OrderRequest request = new OrderRequest(
+                "ORD-001", "CUST-001", "John", "AB", "9876543210",
+                "WEB", "CREDIT_CARD", "AUTHORIZED",
+                List.of(new OrderItemRequest("I1", "P1", 1, new BigDecimal("10"))),
+                LocalDateTime.now(), "A1", "Agent"
+        );
+        assertThrows(IllegalArgumentException.class, () -> validationService.validate(request));
+    }
+
+    private OrderRequest buildValidRequest() {
         return new OrderRequest(
-                "ORD-TEST-001",
-                "CUST-TEST-001",
-                "Test Customer",
-                "123 Test Street, Test City, TC 12345",
-                "+1-123-456-7890",
-                "ECOMMERCE",
-                "TEST-PAYMENT-123",
-                "AUTHORIZED",
-                List.of(
-                        new OrderItemRequest("ITEM-TEST-001", "PRD-TEST-001", 2, new BigDecimal("10.00")),
-                        new OrderItemRequest("ITEM-TEST-002", "PRD-TEST-002", 1, new BigDecimal("5.50"))
-                ),
-                LocalDateTime.now(),
-                "AGENT-TEST-001",
-                "Test Sales Agent"
+                "ORD-VALID-001", "CUST-001", "John Doe",
+                "42 MG Road, Bangalore", "9876543210",
+                "WEB", "CREDIT_CARD", "AUTHORIZED",
+                List.of(new OrderItemRequest("ITEM-1", "PROD-1", 2, new BigDecimal("100.00"))),
+                LocalDateTime.now(), "AGENT-001", "Agent Smith"
         );
     }
 }
