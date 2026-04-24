@@ -1,25 +1,25 @@
 # Order Fulfillment Subsystem | Team VERTEX (#17)
 > **OOAD Lab Project | Supply Chain Management | Section A**
 
-A production-ready Order Fulfillment Subsystem built with **Adapter Pattern + Dependency Injection** architecture, fully integrated with the SCM Database Module and Real-Time Delivery Monitoring system.
+ Order Fulfillment Subsystem built with **Adapter Pattern + Dependency Injection** architecture, fully integrated with the SCM Database Module and Real-Time Delivery Monitoring system.
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
 | # | Feature | Status |
 |---|---------|--------|
-| 1 | Order Capture & Centralization (WEB, MOBILE, EDI, POS) | ✅ |
-| 2 | Inventory Promising (ATP/GTP) | ✅ |
-| 3 | Intelligent Order Routing & Allocation | ✅ |
-| 4 | Order Validation & Fraud Detection | ✅ |
-| 5 | Picking & Packing Orchestration | ✅ |
-| 6 | Shipping & Carrier Management | ✅ |
-| 7 | Real-Time Tracking & Communication | ✅ |
-| 8 | Returns & Reverse Logistics | ✅ |
-| 9 | Exception & Backorder Management | ✅ |
+| 1 | Order Capture & Centralization (WEB, MOBILE, EDI, POS) 
+| 2 | Inventory Promising (ATP/GTP) 
+| 3 | Intelligent Order Routing & Allocation 
+| 4 | Order Validation & Fraud Detection 
+| 5 | Picking & Packing Orchestration 
+| 6 | Shipping & Carrier Management 
+| 7 | Real-Time Tracking & Communication 
+| 8 | Returns & Reverse Logistics 
+| 9 | Exception & Backorder Management 
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -51,7 +51,7 @@ A production-ready Order Fulfillment Subsystem built with **Adapter Pattern + De
 - **Observer Pattern** — Event subscription with Delivery Monitoring
 - **Facade Pattern** — Single entry point via `OrderFulfillmentService`
 
-## 📦 Project Structure
+##  Project Structure
 
 ```
 src/main/java/com/jackfruit/orderfulfillment/
@@ -91,7 +91,7 @@ lib/
 └── ...
 ```
 
-## 🔗 Integrations
+##  Integrations
 
 ### 1. Database Team (SCM Database Module)
 - **JAR**: `lib/database-module-1.0.0-SNAPSHOT-standalone.jar`
@@ -109,7 +109,7 @@ lib/
 - **Resilience**: Non-blocking with connection/read timeouts
 - **Graceful fallback**: Logs to console if endpoint is unreachable
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Java Development Kit (JDK) 21+
@@ -130,7 +130,7 @@ java -cp "target/classes;lib/*" com.jackfruit.orderfulfillment.OrderFulfillmentA
 
 > **Note**: Requires MySQL with the OOAD database for full operation. The test suite runs entirely in-memory using stub adapters.
 
-## 🧪 Test Suite (24 Tests)
+##  Test Suite (24 Tests)
 
 All tests use **in-memory stub implementations** — no database required!
 
@@ -145,7 +145,7 @@ mvn clean test
 # BUILD SUCCESS
 ```
 
-## 📋 For Partner Teams — Integration Guide
+##  For Partner Teams — Integration Guide
 
 **See [`integration.md`](integration.md) for the full integration guide.**
 
@@ -155,14 +155,13 @@ Quick overview:
 3. Use `OrderFulfillmentService` with your own adapter implementations
 4. Subscribe to fulfillment events for real-time updates
 
-## 👥 Team Information
+##  Team Information
 
 | Team Name | Team Number | Subsystem |
 |-----------|------------|-----------|
 | **VERTEX** | #17 | Order Fulfillment (#5) |
 
-## 📄 License
-
+##  License
 This project is part of the OOAD Section A Lab Project — Supply Chain Management.
 
 ---
@@ -170,5 +169,5 @@ This project is part of the OOAD Section A Lab Project — Supply Chain Manageme
 **Version**: 2.0.0  
 **Java**: 21+  
 **Build**: Maven  
-**Tests**: 24/24 passing ✅  
-**Status**: ✅ Production Ready, Integration Complete
+**Tests**: 24/24 passing  
+**Status**: Integration Complete
