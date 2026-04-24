@@ -3,7 +3,7 @@
 
 ---
 
-## 📋 Integration Overview
+##  Integration Overview
 
 This guide provides step-by-step instructions for partner teams to integrate with our **Order Fulfillment Subsystem**. Our system handles the complete order lifecycle — from capture to fulfillment, including ATP checks, intelligent routing, picking/packing, shipping, and returns.
 
@@ -17,7 +17,7 @@ This guide provides step-by-step instructions for partner teams to integrate wit
 
 ---
 
-## 🔌 How to Integrate With Us
+##  How to Integrate With Us
 
 ### Step 1: Clone Our Repository
 ```bash
@@ -68,7 +68,7 @@ String fulfillmentId = service.processNewOrder(order);
 
 ---
 
-## 📡 Available Interfaces
+##  Available Interfaces
 
 ### InventoryService
 ```java
@@ -123,7 +123,7 @@ public interface ReturnService {
 
 ---
 
-## 🤝 Integration with Real-Time Delivery Monitoring (Team #9)
+##  Integration with Real-Time Delivery Monitoring (Team #9)
 
 ### What We Provide (IOrderFulfillmentService)
 We implement their `IOrderFulfillmentService` interface so they can pull data from us:
@@ -160,7 +160,7 @@ deliveryMonitoring.subscribeToDeliveryEvents(
 
 ---
 
-## 🔗 Integration with Commission Tracking
+##  Integration with Commission Tracking
 
 We fire webhook events to the Commission Tracking subsystem after each successful fulfillment:
 
@@ -173,7 +173,7 @@ Body: { "fulfillmentId": "...", "orderId": "...", "agentId": "...", "totalAmount
 
 ---
 
-## 🧪 Testing Your Integration
+##  Testing  Integration
 
 ```bash
 mvn clean test
@@ -193,7 +193,7 @@ static class StubInventoryService implements InventoryService {
 
 ---
 
-## ⚠️ Requirements
+##  Requirements
 
 | Requirement | Value |
 |------------|-------|
